@@ -10,6 +10,29 @@ import (
 	"text/template"
 )
 
+// DefaultLoginTpl is the HTML template for login form by default
+const DefaultLoginTpl = `
+<!DOCTYPE html>
+<html>
+<body>
+	LOGIN {{ .SiteName }}<br/>
+	<form action="{{ .FormAction }}" method="POST">
+		Login: <input type="text" name="login" /><br/>
+		Password: <input type="password" name="password" /><br/>
+		<input type="submit"/>
+	</form>
+</body>
+</html>
+`
+
+// DefaultLoginParser is the default parser of login HTTP request
+func DefaultLoginParser(r *http.Request) (idField, id, password string) {
+	idField = "username"
+	id = r.Form.Get(idField)
+	password = r.Form.Get("password")
+	return
+}
+
 // Endpoints contains http handler func of different endpoints
 type Endpoints struct {
 	Auth  http.HandlerFunc
@@ -29,6 +52,12 @@ func NewManager() (m *Manager) {
 	// provide osin server to Manager
 	m.InitOsin(DefaultOsinConfig())
 
+	// set default template
+	m.SetLoginTpl(DefaultLoginTpl)
+
+	// set default login parser
+	m.SetLoginParser(DefaultLoginParser)
+
 	return
 }
 
@@ -36,52 +65,35 @@ func NewManager() (m *Manager) {
 // Also provide middleware for other http handler function
 // to access scope related information
 type Manager struct {
-	Storage    *Storage
-	OsinServer *osin.Server
+	storage     *Storage
+	osinServer  *osin.Server
+	loginTpl    string
+	loginParser func(r *http.Request) (idField, id, password string)
 }
 
 // UseOsin set the OsinServer
-func (h *Manager) InitOsin(cfg *osin.ServerConfig) *Manager {
-	h.OsinServer = osin.NewServer(cfg, h.Storage)
-	return h
+func (m *Manager) InitOsin(cfg *osin.ServerConfig) *Manager {
+	m.osinServer = osin.NewServer(cfg, m.storage)
+	return m
 }
 
 // Storage provides a osin storage interface
-func (h *Manager) UseStorage(s *Storage) *Manager {
-	h.Storage = s
-	return h
+func (m *Manager) UseStorage(s *Storage) *Manager {
+	m.storage = s
+	return m
 }
 
 // GetEndpoints generate endpoints http handers and return
-func (h *Manager) GetEndpoints() *Endpoints {
+func (m *Manager) GetEndpoints() *Endpoints {
 
-	// read login credential
-	getLoginCred := func(r *http.Request) (idField, id, password string) {
-		idField = "username"
-		id = r.Form.Get(idField)
-		password = r.Form.Get("password")
-		return
-	}
-
-	// template for login form
-	tmplStr := `
-<!DOCTYPE html>
-<html>
-<body>
-	LOGIN {{ .SiteName }}<br/>
-	<form action="{{ .FormAction }}" method="POST">
-		Login: <input type="text" name="login" /><br/>
-		Password: <input type="password" name="password" /><br/>
-		<input type="submit"/>
-	</form>
-</body>
-</html>
-`
-
-	tmpl, err := template.New("loginForm").Parse(tmplStr)
+	// compile template for login form
+	loginTpl, err := template.New("loginForm").Parse(m.loginTpl)
 	if err != nil {
 		panic(err)
 	}
+
+	// read login credential
+	getLoginCred := m.loginParser
 
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
@@ -102,7 +114,7 @@ func (h *Manager) GetEndpoints() *Endpoints {
 
 			// obtain user service
 			var us service.Service
-			us, err = h.Storage.UserService(r)
+			us, err = m.storage.UserService(r)
 			if err != nil {
 				log.Printf("Error obtaining user service: %s", err.Error())
 				err = fmt.Errorf("Internal Server Error")
@@ -165,7 +177,7 @@ func (h *Manager) GetEndpoints() *Endpoints {
 		}
 
 		// render the form with vars
-		err = tmpl.Execute(w, vars)
+		err = loginTpl.Execute(w, vars)
 		if err != nil {
 			panic(err)
 		}
@@ -179,7 +191,7 @@ func (h *Manager) GetEndpoints() *Endpoints {
 
 		log.Printf("auth endpoint")
 
-		srvr := h.OsinServer
+		srvr := m.osinServer
 		resp := srvr.NewResponse()
 		resp.Storage.(*Storage).SetRequest(r)
 
@@ -204,7 +216,7 @@ func (h *Manager) GetEndpoints() *Endpoints {
 	// token endpoint
 	ep.Token = func(w http.ResponseWriter, r *http.Request) {
 
-		srvr := h.OsinServer
+		srvr := m.osinServer
 		resp := srvr.NewResponse()
 		resp.Storage.(*Storage).SetRequest(r)
 
@@ -224,4 +236,20 @@ func (h *Manager) GetEndpoints() *Endpoints {
 
 	return &ep
 
+}
+
+// SetLoginTpl sets the login template
+func (m *Manager) SetLoginTpl(tpl string) {
+	m.loginTpl = tpl
+}
+
+// SetLoginParser sets the parser for login request.
+// Will be called when endpoint POST request
+//
+// Manager will then search user with `idField` equals to `id`.
+// Then it will check User.HasPassword(`password`)
+// (User should implement OAuth2User interface)
+// to see if the password is correct
+func (m *Manager) SetLoginParser(p func(r *http.Request) (idField, id, password string)) {
+	m.loginParser = p
 }
