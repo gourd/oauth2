@@ -16,6 +16,22 @@ type Endpoints struct {
 	Token http.HandlerFunc
 }
 
+// NewManager returns a oauth2 manager with default configs
+func NewManager() (m *Manager) {
+
+	m = &Manager{}
+
+	// provide services to auth storage
+	// NOTE: these are independent to router
+	m.UseStorage(DefaultStorage())
+
+	// provide storage to osin server
+	// provide osin server to Manager
+	m.InitOsin(DefaultOsinConfig())
+
+	return
+}
+
 // Manager handles oauth2 related request
 // Also provide middleware for other http handler function
 // to access scope related information

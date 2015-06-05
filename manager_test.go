@@ -3,7 +3,6 @@ package oauth2
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/RangelReale/osin"
 	"github.com/gorilla/pat"
 	"github.com/gourd/service"
 	"github.com/gourd/service/upperio"
@@ -19,57 +18,17 @@ import (
 // example server web app
 func testOAuth2ServerApp() http.Handler {
 
-	///////
-	// define db
+	// define test db
 	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
 		Database: `./_test/sqlite3.db`,
 	})
 
 	rtr := pat.New()
-	///////
-
-	ah := &Manager{}
-
-	// provide services to auth storage
-	// NOTE: these are independent to router
-	as := &Storage{}
-	as.UseClientFrom(service.Providers.MustGet("Client"))
-	as.UseAuthFrom(service.Providers.MustGet("AuthorizeData"))
-	as.UseAccessFrom(service.Providers.MustGet("AccessData"))
-	as.UseUserFrom(service.Providers.MustGet("User"))
-	ah.UseStorage(as)
-
-	// provide storage to osin server
-	// provide osin server to Manager
-	cfg := osin.NewServerConfig()
-	cfg.AllowGetAccessRequest = true
-	cfg.AllowClientSecretInParams = true
-	cfg.AllowedAccessTypes = osin.AllowedAccessType{
-		osin.AUTHORIZATION_CODE,
-		osin.REFRESH_TOKEN,
-	}
-	cfg.AllowedAuthorizeTypes = osin.AllowedAuthorizeType{
-		osin.CODE,
-		osin.TOKEN,
-	}
-	ah.InitOsin(cfg)
 
 	// add oauth2 endpoints to router
 	// ServeEndpoints bind OAuth2 endpoints to a given base path
 	// Note: this is router specific and need to be generated somehow
-	func(rtr *pat.Router, h *Manager, base string) {
-
-		// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
-		ep := h.GetEndpoints()
-
-		// bind handler with pat
-		// TODO: generate this, or allow injection
-		rtr.Get(base+"/authorize", ep.Auth)
-		rtr.Post(base+"/authorize", ep.Auth)
-		rtr.Get(base+"/token", ep.Token)
-		rtr.Post(base+"/token", ep.Token)
-
-	}(rtr, ah, "/oauth")
+	RoutePat(NewManager(), rtr, "/oauth")
 
 	return rtr
 }
