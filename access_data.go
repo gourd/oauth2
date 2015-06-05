@@ -2,6 +2,7 @@
 package oauth2
 
 import (
+	"fmt"
 	"github.com/RangelReale/osin"
 	"time"
 )
@@ -71,6 +72,37 @@ func (d *AccessData) ToOsin() (od *osin.AccessData) {
 	return
 }
 
+// ReadOsin reads an osin's AccessData into the AccessData instance
 func (d *AccessData) ReadOsin(od *osin.AccessData) error {
+
+	// read parameters that could be directly read
+	d.AccessToken = od.AccessToken
+	d.RefreshToken = od.RefreshToken
+	d.ExpiresIn = od.ExpiresIn
+	d.Scope = od.Scope
+	d.RedirectUri = od.RedirectUri
+	d.CreatedAt = od.CreatedAt
+	d.UserData = od.UserData
+
+	// read indirect parameters
+	if od.Client != nil {
+		if c, ok := od.Client.(*Client); ok {
+			d.Client = c
+		} else {
+			err := fmt.Errorf("Failed to read client from osin.AccessData (%#v)", od.Client)
+			return err
+		}
+	}
+	if od.AuthorizeData != nil {
+		oaud := &AuthorizeData{}
+		oaud.ReadOsin(od.AuthorizeData)
+		d.AuthorizeData = oaud
+	}
+	if od.AccessData != nil {
+		oacd := &AccessData{}
+		oacd.ReadOsin(od.AccessData)
+		d.AccessData = oacd
+	}
+
 	return nil
 }
