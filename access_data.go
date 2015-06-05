@@ -112,3 +112,8 @@ func (d *AccessData) ReadOsin(od *osin.AccessData) error {
 
 	return nil
 }
+
+// Scopes read the scope field into Scopes type
+func (d *AccessData) Scopes() *Scopes {
+	return ReadScopes(d.Scope)
+}
