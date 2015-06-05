@@ -215,7 +215,7 @@ func (store *Storage) SaveAccess(ad *osin.AccessData) (err error) {
 // Optionally can return error if expired.
 func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 
-	log.Printf("Loadaccess %v", token)
+	log.Printf("LoadAccess %v", token)
 
 	srv, err := store.AccessService(store.r)
 	if err != nil {
