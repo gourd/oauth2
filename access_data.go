@@ -60,8 +60,6 @@ type AccessData struct {
 func (d *AccessData) ToOsin() (od *osin.AccessData) {
 	od = &osin.AccessData{}
 	od.Client = d.Client
-	od.AuthorizeData = d.AuthorizeData.ToOsin()
-	od.AccessData = d.AccessData.ToOsin()
 	od.AccessToken = d.AccessToken
 	od.RefreshToken = d.RefreshToken
 	od.ExpiresIn = d.ExpiresIn
@@ -69,6 +67,14 @@ func (d *AccessData) ToOsin() (od *osin.AccessData) {
 	od.RedirectUri = d.RedirectUri
 	od.CreatedAt = d.CreatedAt
 	od.UserData = d.UserData
+
+	// indirect parameters
+	if d.AuthorizeData != nil {
+		od.AuthorizeData = d.AuthorizeData.ToOsin()
+	}
+	if d.AccessData != nil {
+		od.AccessData = d.AccessData.ToOsin()
+	}
 	return
 }
 
