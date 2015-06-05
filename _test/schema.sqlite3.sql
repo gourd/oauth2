@@ -39,7 +39,7 @@ CREATE TABLE user (
   `username` TEXT,
   `email`    TEXT,
   `password` TEXT,
-  `name`     INTEGER,
+  `name`     TEXT,
   `created`  INTEGER,
   `updated`  INTEGER
 );
