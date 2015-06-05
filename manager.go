@@ -10,29 +10,6 @@ import (
 	"text/template"
 )
 
-// DefaultLoginTpl is the HTML template for login form by default
-const DefaultLoginTpl = `
-<!DOCTYPE html>
-<html>
-<body>
-	LOGIN {{ .SiteName }}<br/>
-	<form action="{{ .FormAction }}" method="POST">
-		Login: <input type="text" name="login" /><br/>
-		Password: <input type="password" name="password" /><br/>
-		<input type="submit"/>
-	</form>
-</body>
-</html>
-`
-
-// DefaultLoginParser is the default parser of login HTTP request
-func DefaultLoginParser(r *http.Request) (idField, id, password string) {
-	idField = "username"
-	id = r.Form.Get(idField)
-	password = r.Form.Get("password")
-	return
-}
-
 // Endpoints contains http handler func of different endpoints
 type Endpoints struct {
 	Auth  http.HandlerFunc

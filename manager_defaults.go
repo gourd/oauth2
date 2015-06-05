@@ -2,8 +2,8 @@ package oauth2
 
 import (
 	"github.com/RangelReale/osin"
-	"github.com/gorilla/pat"
 	"github.com/gourd/service"
+	"net/http"
 )
 
 // DefaultStorage returns Storage that attachs to default services
@@ -33,16 +33,25 @@ func DefaultOsinConfig() (cfg *osin.ServerConfig) {
 	return
 }
 
-// RoutePat adds manager's endpoint to a pat router
-func RoutePat(m *Manager, rtr *pat.Router, base string) {
+// DefaultLoginTpl is the HTML template for login form by default
+const DefaultLoginTpl = `
+<!DOCTYPE html>
+<html>
+<body>
+	LOGIN {{ .SiteName }}<br/>
+	<form action="{{ .FormAction }}" method="POST">
+		Login: <input type="text" name="login" /><br/>
+		Password: <input type="password" name="password" /><br/>
+		<input type="submit"/>
+	</form>
+</body>
+</html>
+`
 
-	// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
-	ep := m.GetEndpoints()
-
-	// bind handler with pat
-	rtr.Get(base+"/authorize", ep.Auth)
-	rtr.Post(base+"/authorize", ep.Auth)
-	rtr.Get(base+"/token", ep.Token)
-	rtr.Post(base+"/token", ep.Token)
-
+// DefaultLoginParser is the default parser of login HTTP request
+func DefaultLoginParser(r *http.Request) (idField, id, password string) {
+	idField = "username"
+	id = r.Form.Get(idField)
+	password = r.Form.Get("password")
+	return
 }
