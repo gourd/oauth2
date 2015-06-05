@@ -3,9 +3,11 @@ package oauth2
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/codegangsta/negroni"
 	"github.com/gorilla/pat"
 	"github.com/gourd/service"
 	"github.com/gourd/service/upperio"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -25,12 +27,46 @@ func testOAuth2ServerApp() http.Handler {
 
 	rtr := pat.New()
 
+	// oauth2 manager
+	m := NewManager()
+
 	// add oauth2 endpoints to router
 	// ServeEndpoints bind OAuth2 endpoints to a given base path
 	// Note: this is router specific and need to be generated somehow
-	RoutePat(NewManager().GetEndpoints(), rtr, "/oauth")
+	RoutePat(m.GetEndpoints(), rtr, "/oauth")
 
-	return rtr
+	// add a route the requires access
+	rtr.Get("/content", func(w http.ResponseWriter, r *http.Request) {
+
+		log.Printf("Dummy content page accessed")
+
+		// obtain access
+		a, err := GetAccess(r)
+		if err != nil {
+			log.Printf("Dummy content: access error: %s", err.Error())
+			fmt.Fprint(w, "Permission Denied")
+			return
+		}
+
+		// test the access
+		if a == nil {
+			fmt.Fprint(w, "Unable to gain Access")
+			return
+		}
+
+		// no news is good news
+		fmt.Fprint(w, "Success")
+	})
+
+	// create negroni middleware handler
+	// with middlewares
+	n := negroni.New()
+	n.Use(negroni.Wrap(m.Middleware()))
+
+	// use router in negroni
+	n.UseHandler(rtr)
+
+	return n
 }
 
 // example client web app in the login
@@ -99,6 +135,8 @@ func TestOAuth2(t *testing.T) {
 	// get response from client web app redirect uri
 	code, err := func(c *Client, u *User, password, redirect string) (code string, err error) {
 
+		log.Printf("Test retrieving code ====")
+
 		// login form
 		form := url.Values{}
 		form.Add("username", u.Username)
@@ -154,7 +192,7 @@ func TestOAuth2(t *testing.T) {
 	// get response from client web app redirect uri
 	token, err := func(c *Client, code, redirect string) (token string, err error) {
 
-		log.Printf("Begin token request")
+		log.Printf("Test retrieving token ====")
 
 		// build user request to token endpoint
 		form := &url.Values{}
@@ -193,12 +231,47 @@ func TestOAuth2(t *testing.T) {
 
 	}(c, code, tcs.URL+tcspath)
 
-	// quite if error
+	// quit if error
 	if err != nil {
 		t.Errorf(err.Error())
 		return
 	}
 
-	log.Printf("token: \"%s\"", token)
+	// retrieve a testing content path
+	body, err := func(token string) (body string, err error) {
+
+		log.Printf("Test accessing content with token ====")
+
+		req, err := http.NewRequest("GET", ts.URL+"/content", nil)
+		req.Header.Add("Authority", token)
+
+		// new http client to emulate user request
+		hc := &http.Client{}
+		resp, err := hc.Do(req)
+		if err != nil {
+			err = fmt.Errorf("Failed run the request: %s", err.Error())
+			return
+		}
+
+		raw, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			err = fmt.Errorf("Failed to read body: %s", err.Error())
+			return
+		}
+
+		body = string(raw)
+		return
+	}(token)
+
+	// quit if error
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	} else if body != "Success" {
+		t.Errorf("Content Incorrect. Expecting \"Success\" but get \"%s\"", body)
+	}
+
+	// final result
+	log.Printf("result: \"%s\"", body)
 
 }

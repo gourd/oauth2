@@ -227,3 +227,10 @@ func (m *Manager) SetLoginTpl(tpl string) {
 func (m *Manager) SetLoginParser(p func(r *http.Request) (idField, id, password string)) {
 	m.loginParser = p
 }
+
+// Middleware returns *Middleware with the current storage
+func (m *Manager) Middleware() *Middleware {
+	return &Middleware{
+		storage: m.storage,
+	}
+}
