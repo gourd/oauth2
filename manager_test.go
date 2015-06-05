@@ -28,7 +28,7 @@ func testOAuth2ServerApp() http.Handler {
 	// add oauth2 endpoints to router
 	// ServeEndpoints bind OAuth2 endpoints to a given base path
 	// Note: this is router specific and need to be generated somehow
-	RoutePat(NewManager(), rtr, "/oauth")
+	RoutePat(NewManager().GetEndpoints(), rtr, "/oauth")
 
 	return rtr
 }
