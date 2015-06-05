@@ -69,9 +69,6 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		panic(err)
 	}
 
-	// read login credential
-	getLoginCred := m.loginParser
-
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
 
@@ -82,7 +79,7 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		if r.Method == "POST" {
 
 			// get login information from form
-			idField, id, password := getLoginCred(r)
+			idField, id, password := m.loginParser(r)
 			log.Printf("login: %s, %s, %s", idField, id, password)
 			if id == "" || password == "" {
 				err = fmt.Errorf("Empty Username or Password")
