@@ -1,0 +1,245 @@
+package oauth2
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/RangelReale/osin"
+	"github.com/gorilla/pat"
+	"github.com/gourd/service"
+	"github.com/gourd/service/upperio"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
+	"testing"
+	"upper.io/db/sqlite"
+)
+
+// example server web app
+func testOAuth2ServerApp() http.Handler {
+
+	///////
+	// define db
+	upperio.Define("default", sqlite.Adapter, sqlite.ConnectionURL{
+		Database: `./_test/sqlite3.db`,
+	})
+
+	rtr := pat.New()
+	///////
+
+	ah := &Manager{}
+
+	// provide services to auth storage
+	// NOTE: these are independent to router
+	as := &Storage{}
+	as.UseClientFrom(service.Providers.MustGet("Client"))
+	as.UseAuthFrom(service.Providers.MustGet("AuthorizeData"))
+	as.UseAccessFrom(service.Providers.MustGet("AccessData"))
+	as.UseUserFrom(service.Providers.MustGet("User"))
+	ah.UseStorage(as)
+
+	// provide storage to osin server
+	// provide osin server to Manager
+	cfg := osin.NewServerConfig()
+	cfg.AllowGetAccessRequest = true
+	cfg.AllowClientSecretInParams = true
+	cfg.AllowedAccessTypes = osin.AllowedAccessType{
+		osin.AUTHORIZATION_CODE,
+		osin.REFRESH_TOKEN,
+	}
+	cfg.AllowedAuthorizeTypes = osin.AllowedAuthorizeType{
+		osin.CODE,
+		osin.TOKEN,
+	}
+	ah.InitOsin(cfg)
+
+	// add oauth2 endpoints to router
+	// ServeEndpoints bind OAuth2 endpoints to a given base path
+	// Note: this is router specific and need to be generated somehow
+	func(rtr *pat.Router, h *Manager, base string) {
+
+		// TODO: also implement other endpoints (e.g. permission endpoint, refresh)
+		ep := h.GetEndpoints()
+
+		// bind handler with pat
+		// TODO: generate this, or allow injection
+		rtr.Get(base+"/authorize", ep.Auth)
+		rtr.Post(base+"/authorize", ep.Auth)
+		rtr.Get(base+"/token", ep.Token)
+		rtr.Post(base+"/token", ep.Token)
+
+	}(rtr, ah, "/oauth")
+
+	return rtr
+}
+
+// example client web app in the login
+func testOAuth2ClientApp(path string) http.Handler {
+	rtr := pat.New()
+
+	// add dummy client reception of redirection
+	rtr.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		enc := json.NewEncoder(w)
+		enc.Encode(map[string]string{
+			"code":  r.Form.Get("code"),
+			"token": r.Form.Get("token"),
+		})
+	})
+
+	return rtr
+}
+
+func TestOAuth2(t *testing.T) {
+
+	// create test oauth2 server
+	ts := httptest.NewServer(testOAuth2ServerApp())
+	defer ts.Close()
+
+	// create test client server
+	tcsbase := "/example_app/"
+	tcspath := tcsbase + "code"
+	tcs := httptest.NewServer(testOAuth2ClientApp(tcspath))
+	defer tcs.Close()
+
+	// a dummy password for dummy user
+	password := "password"
+
+	// create dummy oauth client and user
+	c, u := func(tcs *httptest.Server, password, redirect string) (*Client, *User) {
+		r := &http.Request{}
+
+		// generate dummy user
+		us, err := service.Providers.MustGet("User")(r)
+		if err != nil {
+			panic(err)
+		}
+		u := dummyNewUser(password)
+		err = us.Create(service.NewConds(), u)
+		if err != nil {
+			panic(err)
+		}
+
+		// get related dummy client
+		cs, err := service.Providers.MustGet("Client")(r)
+		if err != nil {
+			panic(err)
+		}
+		c := dummyNewClient(redirect)
+		c.UserId = u.Id
+		err = cs.Create(service.NewConds(), c)
+		if err != nil {
+			panic(err)
+		}
+
+		return c, u
+	}(tcs, password, tcs.URL+tcsbase)
+
+	// build user request to authorization endpoint
+	// get response from client web app redirect uri
+	code, err := func(c *Client, u *User, password, redirect string) (code string, err error) {
+
+		// login form
+		form := url.Values{}
+		form.Add("username", u.Username)
+		form.Add("password", password)
+		log.Printf("form send: %s", form.Encode())
+
+		// build the query string
+		q := &url.Values{}
+		q.Add("response_type", "code")
+		q.Add("client_id", c.StrId)
+		q.Add("redirect_uri", redirect)
+
+		req, err := http.NewRequest("POST",
+			ts.URL+"/oauth/authorize"+"?"+q.Encode(),
+			strings.NewReader(form.Encode()))
+		if err != nil {
+			err = fmt.Errorf("Failed to form new request: %s", err.Error())
+			return
+		}
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+		// new http client to emulate user request
+		hc := &http.Client{}
+		resp, err := hc.Do(req)
+		if err != nil {
+			err = fmt.Errorf("Failed run the request: %s", err.Error())
+		}
+
+		log.Printf("Response.Request: %#v", resp.Request.URL)
+
+		// request should be redirected to client app with code
+		// the testing client app response with a json containing "code"
+		// decode the client app json and retrieve the code
+		bodyDecoded := make(map[string]string)
+		dec := json.NewDecoder(resp.Body)
+		dec.Decode(&bodyDecoded)
+		var ok bool
+		if code, ok = bodyDecoded["code"]; !ok {
+			err = fmt.Errorf("Client app failed to retrieve code in the redirection")
+		}
+		log.Printf("Response Body: %#v", bodyDecoded["code"])
+
+		return
+	}(c, u, password, tcs.URL+tcspath)
+
+	// quite if error
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	// retrieve token from token endpoint
+	// get response from client web app redirect uri
+	token, err := func(c *Client, code, redirect string) (token string, err error) {
+
+		log.Printf("Begin token request")
+
+		// build user request to token endpoint
+		form := &url.Values{}
+		form.Add("code", code)
+		form.Add("client_id", c.StrId)
+		form.Add("client_secret", c.Secret)
+		form.Add("grant_type", "authorization_code")
+		form.Add("redirect_uri", redirect)
+		req, err := http.NewRequest("POST",
+			ts.URL+"/oauth/token",
+			strings.NewReader(form.Encode()))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		if err != nil {
+			t.Errorf("Failed to form new request: %s", err.Error())
+		}
+
+		// new http client to emulate user request
+		hc := &http.Client{}
+		resp, err := hc.Do(req)
+		if err != nil {
+			err = fmt.Errorf("Failed run the request: %s", err.Error())
+		}
+
+		// read token from token endpoint response (json)
+		bodyDecoded := make(map[string]string)
+		dec := json.NewDecoder(resp.Body)
+		dec.Decode(&bodyDecoded)
+
+		log.Printf("Response Body: %#v", bodyDecoded)
+		var ok bool
+		if token, ok = bodyDecoded["access_token"]; !ok {
+			err = fmt.Errorf(
+				"Unable to parse access_token: %s", err.Error())
+		}
+		return
+
+	}(c, code, tcs.URL+tcspath)
+
+	// quite if error
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	log.Printf("token: \"%s\"", token)
+
+}
