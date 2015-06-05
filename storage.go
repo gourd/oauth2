@@ -254,13 +254,22 @@ func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 		if e.AuthorizeCode != "" {
 			a, err := store.LoadAuthorize(e.AuthorizeCode)
 			if err != nil {
-				return err
+				// ignore "Not Found"
+				code, msg := service.ParseError(err)
+				if code == 404 {
+					log.Printf("Failed to load Auth: %#v. Ignore", msg)
+				} else {
+					log.Printf("Failed to load Auth: %#v", msg)
+					return err
+				}
+			} else {
+				log.Printf("Auth data found")
+				ad := &AuthorizeData{}
+				if err = ad.ReadOsin(a); err != nil {
+					return err
+				}
+				e.AuthorizeData = ad
 			}
-			ad := &AuthorizeData{}
-			if err = ad.ReadOsin(a); err != nil {
-				return err
-			}
-			e.AuthorizeData = ad
 		}
 
 		// load previous access here
