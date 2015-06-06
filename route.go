@@ -5,7 +5,7 @@ import (
 )
 
 // RoutePat adds manager's endpoint to a pat router
-func RoutePat(ep *Endpoints, rtr *pat.Router, base string) {
+func RoutePat(rtr *pat.Router, base string, ep *Endpoints) {
 
 	// bind handler with pat
 	rtr.Get(base+"/authorize", ep.Auth)
