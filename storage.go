@@ -84,7 +84,7 @@ func (store *Storage) GetClient(strId string) (c osin.Client, err error) {
 		return
 	} else if e == nil {
 		log.Printf("Client not found for the str_id")
-		err = service.Errorf(http.StatusNotFound,
+		err = service.Error(http.StatusNotFound,
 			"Client not found for the str_id")
 		return
 	}
@@ -138,7 +138,7 @@ func (store *Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err err
 	if err != nil {
 		return
 	} else if e == nil {
-		err = service.Errorf(http.StatusNotFound,
+		err = service.Error(http.StatusNotFound,
 			"AuthorizeData not found for the code")
 		return
 	}
@@ -149,7 +149,7 @@ func (store *Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err err
 	if err != nil {
 		return
 	} else if e.Client, ok = cli.(*Client); !ok {
-		err = service.Errorf(http.StatusInternalServerError,
+		err = service.Error(http.StatusInternalServerError,
 			"Internal Server Error")
 		log.Printf("Unable to cast client into Client type: %#v", cli)
 		return
@@ -230,7 +230,7 @@ func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 	if err != nil {
 		return
 	} else if e == nil {
-		err = service.Errorf(http.StatusNotFound,
+		err = service.Error(http.StatusNotFound,
 			"AccessData not found for the token")
 		return
 	}
@@ -244,7 +244,7 @@ func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 		if err != nil {
 			return
 		} else if e.Client, ok = cli.(*Client); !ok {
-			err = service.Errorf(http.StatusInternalServerError,
+			err = service.Error(http.StatusInternalServerError,
 				"Internal Server Error")
 			log.Printf("Unable to cast client into Client type: %#v", cli)
 			return
@@ -332,7 +332,7 @@ func (store *Storage) LoadRefresh(token string) (d *osin.AccessData, err error) 
 	if err != nil {
 		return
 	} else if e == nil {
-		err = service.Errorf(http.StatusNotFound,
+		err = service.Error(http.StatusNotFound,
 			"AccessData not found for the refresh token")
 		return
 	}
