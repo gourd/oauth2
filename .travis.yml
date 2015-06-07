@@ -1,0 +1,13 @@
+language: go
+
+install:
+  - sudo apt-get install sqlite3
+  - go get -u github.com/gourd/service/upperio
+  - go get -u upper.io/db/sqlite
+  - go get -u github.com/RangelReale/osin
+  - go get -u github.com/yookoala/restit
+
+go:
+  - 1.3
+  - 1.4
+  - tip
