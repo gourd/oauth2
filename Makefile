@@ -3,23 +3,25 @@
 # generated components.
 #
 
-test: pretest
-	go test
+test: flag.deps
+	sqlite3 _test/sqlite3.db < _test/schema.sqlite3.sql
+	go test -v
 
 generate: clean
 	go generate
 
-pretest:
-	go get github.com/codegangsta/negroni
-	go get github.com/gourd/service
-	go get github.com/gourd/service/upperio
-	go get github.com/gorilla/pat
-	go get upper.io/db/sqlite
-	go get github.com/yookoala/restit
-	sqlite3 _test/sqlite3.db < _test/schema.sqlite3.sql
+flag.deps:
+	go get -u github.com/codegangsta/negroni
+	go get -u github.com/gourd/service
+	go get -u github.com/gourd/service/upperio
+	go get -u github.com/gorilla/pat
+	go get -u upper.io/db/sqlite
+	go get -u github.com/yookoala/restit
+	touch flag.deps
 
 clean:
 	rm -f *_service.go
 	rm -f *_service_rest.go
+	rm -f flag.deps
 
-.PHONY: build prebuild test clean
+.PHONY: test generate clean
