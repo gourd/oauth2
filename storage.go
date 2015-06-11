@@ -9,50 +9,50 @@ import (
 
 // Storage implements osin.Storage
 type Storage struct {
-	r             *http.Request
-	ClientService service.ProvideFunc
-	AuthService   service.ProvideFunc
-	AccessService service.ProvideFunc
-	UserService   service.ProvideFunc
+	r      *http.Request
+	Client service.Provider
+	Auth   service.Provider
+	Access service.Provider
+	User   service.Provider
 }
 
-// SetRequest set the ClientService
+// SetRequest set the request
 func (store *Storage) SetRequest(r *http.Request) *Storage {
 	store.r = r
 	return store
 }
 
-// UseClientFrom set the ClientService
-func (store *Storage) UseClientFrom(p service.ProvideFunc) *Storage {
-	store.ClientService = p
+// UseClientFrom set the Client provider
+func (store *Storage) UseClientFrom(p service.Provider) *Storage {
+	store.Client = p
 	return store
 }
 
-// UseAuthFrom set the AuthService
-func (store *Storage) UseAuthFrom(p service.ProvideFunc) *Storage {
-	store.AuthService = p
+// UseAuthFrom set the Auth provider
+func (store *Storage) UseAuthFrom(p service.Provider) *Storage {
+	store.Auth = p
 	return store
 }
 
-// UseAccessFrom set the AccessService
-func (store *Storage) UseAccessFrom(p service.ProvideFunc) *Storage {
-	store.AccessService = p
+// UseAccessFrom set the Access provider
+func (store *Storage) UseAccessFrom(p service.Provider) *Storage {
+	store.Access = p
 	return store
 }
 
-// UseUserFrom set the UserService
-func (store *Storage) UseUserFrom(p service.ProvideFunc) *Storage {
-	store.UserService = p
+// UseUserFrom set the User provider
+func (store *Storage) UseUserFrom(p service.Provider) *Storage {
+	store.User = p
 	return store
 }
 
 // Clone the storage
 func (store *Storage) Clone() (c osin.Storage) {
 	c = &Storage{
-		ClientService: store.ClientService,
-		AuthService:   store.AuthService,
-		AccessService: store.AccessService,
-		UserService:   store.UserService,
+		Client: store.Client,
+		Auth:   store.Auth,
+		Access: store.Access,
+		User:   store.User,
 	}
 	return
 }
@@ -67,7 +67,7 @@ func (store *Storage) GetClient(strId string) (c osin.Client, err error) {
 
 	log.Printf("GetClient %s", strId)
 
-	srv, err := store.ClientService(store.r)
+	srv, err := store.Client.Service(store.r)
 	if err != nil {
 		log.Printf("Unable to get client service")
 		return
@@ -98,7 +98,7 @@ func (store *Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
 
 	log.Printf("SaveAuthorize %v", d)
 
-	srv, err := store.AuthService(store.r)
+	srv, err := store.Auth.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -125,7 +125,7 @@ func (store *Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err err
 	log.Printf("LoadAuthorize %s", code)
 
 	// loading osin using osin service
-	srv, err := store.AuthService(store.r)
+	srv, err := store.Auth.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -164,7 +164,7 @@ func (store *Storage) RemoveAuthorize(code string) (err error) {
 
 	log.Printf("RemoveAuthorize %s", code)
 
-	srv, err := store.AuthService(store.r)
+	srv, err := store.Auth.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -179,7 +179,7 @@ func (store *Storage) RemoveAuthorize(code string) (err error) {
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (store *Storage) SaveAccess(ad *osin.AccessData) (err error) {
 
-	srv, err := store.AccessService(store.r)
+	srv, err := store.Access.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -217,7 +217,7 @@ func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 
 	log.Printf("LoadAccess %v", token)
 
-	srv, err := store.AccessService(store.r)
+	srv, err := store.Access.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -301,7 +301,7 @@ func (store *Storage) RemoveAccess(token string) (err error) {
 
 	log.Printf("RemoveAccess %v", token)
 
-	srv, err := store.AccessService(store.r)
+	srv, err := store.Access.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -319,7 +319,7 @@ func (store *Storage) LoadRefresh(token string) (d *osin.AccessData, err error) 
 
 	log.Printf("LoadRefresh %v", token)
 
-	srv, err := store.AccessService(store.r)
+	srv, err := store.Access.Service(store.r)
 	if err != nil {
 		return
 	}
@@ -346,7 +346,7 @@ func (store *Storage) RemoveRefresh(token string) (err error) {
 
 	log.Printf("RemoveRefresh %v", token)
 
-	srv, err := store.AccessService(store.r)
+	srv, err := store.Access.Service(store.r)
 	if err != nil {
 		return
 	}

@@ -88,7 +88,7 @@ func (m *Manager) GetEndpoints() *Endpoints {
 
 			// obtain user service
 			var us service.Service
-			us, err = m.storage.UserService(r)
+			us, err = m.storage.User.Service(r)
 			if err != nil {
 				log.Printf("Error obtaining user service: %s", err.Error())
 				err = fmt.Errorf("Internal Server Error")
