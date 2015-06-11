@@ -10,10 +10,10 @@ import (
 // Storage implements osin.Storage
 type Storage struct {
 	r             *http.Request
-	ClientService service.ProviderFunc
-	AuthService   service.ProviderFunc
-	AccessService service.ProviderFunc
-	UserService   service.ProviderFunc
+	ClientService service.ProvideFunc
+	AuthService   service.ProvideFunc
+	AccessService service.ProvideFunc
+	UserService   service.ProvideFunc
 }
 
 // SetRequest set the ClientService
@@ -23,25 +23,25 @@ func (store *Storage) SetRequest(r *http.Request) *Storage {
 }
 
 // UseClientFrom set the ClientService
-func (store *Storage) UseClientFrom(p service.ProviderFunc) *Storage {
+func (store *Storage) UseClientFrom(p service.ProvideFunc) *Storage {
 	store.ClientService = p
 	return store
 }
 
 // UseAuthFrom set the AuthService
-func (store *Storage) UseAuthFrom(p service.ProviderFunc) *Storage {
+func (store *Storage) UseAuthFrom(p service.ProvideFunc) *Storage {
 	store.AuthService = p
 	return store
 }
 
 // UseAccessFrom set the AccessService
-func (store *Storage) UseAccessFrom(p service.ProviderFunc) *Storage {
+func (store *Storage) UseAccessFrom(p service.ProvideFunc) *Storage {
 	store.AccessService = p
 	return store
 }
 
 // UseUserFrom set the UserService
-func (store *Storage) UseUserFrom(p service.ProviderFunc) *Storage {
+func (store *Storage) UseUserFrom(p service.ProvideFunc) *Storage {
 	store.UserService = p
 	return store
 }
