@@ -3,8 +3,7 @@ package oauth2
 
 // Client implements the osin Client interface
 type Client struct {
-	Id          int64       `db:"id,omitempty"`
-	StrId       string      `db:"str_id"`
+	Id          string      `db:"id,omitempty"`
 	Secret      string      `db:"secret"`
 	RedirectUri string      `db:"redirect_uri"`
 	UserId      int64       `db:"user_id"`
@@ -15,7 +14,7 @@ func (c *Client) GetId() string {
 	if c == nil {
 		return ""
 	}
-	return c.StrId
+	return c.Id
 }
 
 func (c *Client) GetSecret() string {

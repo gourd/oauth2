@@ -50,8 +50,7 @@ CREATE TABLE user (
 --
 DROP TABLE IF EXISTS oauth2_client;
 CREATE TABLE oauth2_client (
-  `id`           INTEGER PRIMARY KEY,
-  `str_id`       TEXT,
+  `id`           TEXT PRIMARY KEY,
   `secret`       TEXT,
   `redirect_uri` TEXT,
   `user_id`      TEXT

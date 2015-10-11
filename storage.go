@@ -63,9 +63,9 @@ func (store *Storage) Close() {
 }
 
 // GetClient loads the client by id (client_id)
-func (store *Storage) GetClient(strId string) (c osin.Client, err error) {
+func (store *Storage) GetClient(id string) (c osin.Client, err error) {
 
-	log.Printf("GetClient %s", strId)
+	log.Printf("GetClient %s", id)
 
 	srv, err := store.Client.Service(store.r)
 	if err != nil {
@@ -75,7 +75,7 @@ func (store *Storage) GetClient(strId string) (c osin.Client, err error) {
 
 	e := &Client{}
 	conds := service.NewConds()
-	conds.Add("str_id", strId)
+	conds.Add("id", id)
 
 	err = srv.One(conds, e)
 	if err != nil {
@@ -83,9 +83,9 @@ func (store *Storage) GetClient(strId string) (c osin.Client, err error) {
 		log.Printf("Failed running One()")
 		return
 	} else if e == nil {
-		log.Printf("Client not found for the str_id")
+		log.Printf("Client not found for the id %#v", id)
 		err = service.Error(http.StatusNotFound,
-			"Client not found for the str_id")
+			"Client not found for the given id")
 		return
 	}
 

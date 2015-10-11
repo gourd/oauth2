@@ -146,7 +146,7 @@ func TestOAuth2(t *testing.T) {
 		// build the query string
 		q := &url.Values{}
 		q.Add("response_type", "code")
-		q.Add("client_id", c.StrId)
+		q.Add("client_id", c.GetId())
 		q.Add("redirect_uri", redirect)
 
 		req, err := http.NewRequest("POST",
@@ -197,7 +197,7 @@ func TestOAuth2(t *testing.T) {
 		// build user request to token endpoint
 		form := &url.Values{}
 		form.Add("code", code)
-		form.Add("client_id", c.StrId)
+		form.Add("client_id", c.GetId())
 		form.Add("client_secret", c.Secret)
 		form.Add("grant_type", "authorization_code")
 		form.Add("redirect_uri", redirect)
