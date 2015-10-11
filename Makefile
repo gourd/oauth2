@@ -17,6 +17,7 @@ flag.deps:
 	go get -u github.com/gorilla/pat
 	go get -u upper.io/db/sqlite
 	go get -u github.com/yookoala/restit
+	go get -u github.com/satori/go.uuid
 	touch flag.deps
 
 clean:
