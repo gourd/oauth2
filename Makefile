@@ -11,6 +11,7 @@ generate: clean
 	go generate
 
 flag.deps:
+	go get -u github.com/asaskevich/govalidator
 	go get -u github.com/codegangsta/negroni
 	go get -u github.com/gourd/service
 	go get -u github.com/gourd/service/upperio
