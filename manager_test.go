@@ -139,7 +139,7 @@ func TestOAuth2(t *testing.T) {
 
 		// login form
 		form := url.Values{}
-		form.Add("username", u.Username)
+		form.Add("user_id", u.Username)
 		form.Add("password", password)
 		log.Printf("form send: %s", form.Encode())
 

@@ -2,7 +2,11 @@ package oauth2
 
 import (
 	"github.com/RangelReale/osin"
+	"github.com/asaskevich/govalidator"
 	"github.com/gourd/service"
+
+	"errors"
+	"log"
 	"net/http"
 )
 
@@ -49,9 +53,50 @@ const DefaultLoginTpl = `
 `
 
 // DefaultLoginParser is the default parser of login HTTP request
-func DefaultLoginParser(r *http.Request) (idField, id, password string) {
-	idField = "user_id"
-	id = r.Form.Get(idField)
-	password = r.Form.Get("password")
-	return
+func NewUserFunc(idName string) UserFunc {
+	return func(r *http.Request, us service.Service) (ou OAuth2User, err error) {
+
+		var c service.Conds
+
+		id := r.Form.Get(idName)
+
+		if id == "" {
+			err = errors.New("empty user identifier")
+			return
+		}
+
+		// different condition based on the user_id field format
+		if govalidator.IsEmail(id) {
+			c = service.NewConds().Add("email", id)
+		} else {
+			c = service.NewConds().Add("username", id)
+		}
+
+		// get user from database
+		u := us.AllocEntity()
+		err = us.One(c, u)
+		if err != nil {
+			log.Printf("Error searching user \"%s\": %s", id, err.Error())
+			err = errors.New("Internal Server Error")
+			return
+		}
+
+		// if user does not exists
+		if u == nil {
+			log.Printf("Unknown user \"%s\" attempt to login", id)
+			err = errors.New("Username or Password incorrect")
+			return
+		}
+
+		// cast the user as OAuth2User
+		// and do password check
+		ou, ok := u.(OAuth2User)
+		if !ok {
+			log.Printf("User cannot be cast as OAuth2User")
+			err = errors.New("Internal server error")
+			return
+		}
+
+		return
+	}
 }

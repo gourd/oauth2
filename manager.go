@@ -1,7 +1,7 @@
 package oauth2
 
 import (
-	"fmt"
+	"errors"
 	"github.com/RangelReale/osin"
 	"github.com/gourd/service"
 	"log"
@@ -33,19 +33,24 @@ func NewManager() (m *Manager) {
 	m.SetLoginTpl(DefaultLoginTpl)
 
 	// set default login parser
-	m.SetLoginParser(DefaultLoginParser)
+	m.SetUserFunc(NewUserFunc("user_id"))
 
 	return
 }
+
+// UserFunc reads the login form request and returns an OAuth2User
+// for the reqeust. If there is error obtaining the user, an error
+// is returned
+type UserFunc func(r *http.Request, us service.Service) (u OAuth2User, err error)
 
 // Manager handles oauth2 related request
 // Also provide middleware for other http handler function
 // to access scope related information
 type Manager struct {
-	storage     *Storage
-	osinServer  *osin.Server
-	loginTpl    string
-	loginParser func(r *http.Request) (idField, id, password string)
+	storage    *Storage
+	osinServer *osin.Server
+	loginTpl   string
+	userFunc   UserFunc
 }
 
 // UseOsin set the OsinServer
@@ -79,55 +84,37 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		r.ParseForm()
 		if r.Method == "POST" {
 
-			// get login information from form
-			idField, id, password := m.loginParser(r)
-			log.Printf("login: %s, %s, %s", idField, id, password)
-			if id == "" || password == "" {
-				err = fmt.Errorf("Empty Username or Password")
+			var u OAuth2User
+			var us service.Service
+
+			// get and check password
+			password := r.Form.Get("password")
+			if password == "" {
+				err = errors.New("empty password")
 				return
 			}
 
 			// obtain user service
-			var us service.Service
 			us, err = m.storage.User.Service(r)
 			if err != nil {
 				log.Printf("Error obtaining user service: %s", err.Error())
-				err = fmt.Errorf("Internal Server Error")
+				err = errors.New("Internal Server Error")
 				return
 			}
 
-			// get user from database
-			u := us.AllocEntity()
-			c := service.NewConds().Add(idField, id)
-			err = us.One(c, u)
+			// get user by userFunc
+			u, err = m.userFunc(r, us)
 			if err != nil {
-				log.Printf("Error searching user \"%s\": %s", id, err.Error())
-				err = fmt.Errorf("Internal Server Error")
-				return
-			}
-
-			// if user does not exists
-			if u == nil {
-				log.Printf("Unknown user \"%s\" attempt to login", id)
-				err = fmt.Errorf("Username or Password incorrect")
-				return
-			}
-
-			// cast the user as OAuth2User
-			// and do password check
-			ou, ok := u.(OAuth2User)
-			if !ok {
-				log.Printf("User cannot be cast as OAuth2User")
-				err = fmt.Errorf("Internal server error")
-				return
+				log.Printf("Error obtaining user: %s", err.Error())
+				err = errors.New("Internal Server Error")
 			}
 
 			// if password does not match
-			if !ou.PasswordIs(password) {
-				log.Printf("Attempt to login \"%s\" with incorrect password", id)
-				err = fmt.Errorf("Username or Password incorrect")
+			if !u.PasswordIs(password) {
+				log.Print("Incorrect password")
+				err = errors.New("username or password incorrect")
 			} else {
-				log.Printf("Login \"%s\" success", id)
+				log.Printf("Login success")
 			}
 
 			// return pointer of user object, allow it to be re-cast
@@ -225,8 +212,8 @@ func (m *Manager) SetLoginTpl(tpl string) {
 // Then it will check User.HasPassword(`password`)
 // (User should implement OAuth2User interface)
 // to see if the password is correct
-func (m *Manager) SetLoginParser(p func(r *http.Request) (idField, id, password string)) {
-	m.loginParser = p
+func (m *Manager) SetUserFunc(f UserFunc) {
+	m.userFunc = f
 }
 
 // Middleware returns *Middleware with the current storage
