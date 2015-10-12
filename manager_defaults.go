@@ -40,7 +40,7 @@ const DefaultLoginTpl = `
 <body>
 	LOGIN {{ .SiteName }}<br/>
 	<form action="{{ .FormAction }}" method="POST">
-		Login: <input type="text" name="login" /><br/>
+		Login: <input type="text" name="user_id" /><br/>
 		Password: <input type="password" name="password" /><br/>
 		<input type="submit"/>
 	</form>
@@ -50,7 +50,7 @@ const DefaultLoginTpl = `
 
 // DefaultLoginParser is the default parser of login HTTP request
 func DefaultLoginParser(r *http.Request) (idField, id, password string) {
-	idField = "username"
+	idField = "user_id"
 	id = r.Form.Get(idField)
 	password = r.Form.Get("password")
 	return
