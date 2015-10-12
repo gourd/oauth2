@@ -151,9 +151,10 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		}
 
 		// render the form with vars
+		w.Header().Add("Content-Type", "text/html;charset=utf8")
 		err = loginTpl.Execute(w, vars)
 		if err != nil {
-			panic(err)
+			log.Printf("error executing login template: %#v", err.Error())
 		}
 		return
 	}
