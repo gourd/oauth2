@@ -72,6 +72,7 @@ func (m *Manager) GetEndpoints() *Endpoints {
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
 
+		w.Header().Add("Content-Type", "text/html;charset=utf8")
 		log.Printf("handleLogin")
 
 		// parse POST input
@@ -151,7 +152,6 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		}
 
 		// render the form with vars
-		w.Header().Add("Content-Type", "text/html;charset=utf8")
 		err = loginTpl.Execute(w, vars)
 		if err != nil {
 			log.Printf("error executing login template: %#v", err.Error())
