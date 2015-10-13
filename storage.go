@@ -72,6 +72,7 @@ func (store *Storage) GetClient(id string) (c osin.Client, err error) {
 		log.Printf("Unable to get client service")
 		return
 	}
+	defer srv.Close()
 
 	e := &Client{}
 	conds := service.NewConds()
@@ -102,6 +103,7 @@ func (store *Storage) SaveAuthorize(d *osin.AuthorizeData) (err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	e := &AuthorizeData{}
 	err = e.ReadOsin(d)
@@ -129,6 +131,7 @@ func (store *Storage) LoadAuthorize(code string) (d *osin.AuthorizeData, err err
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	e := &AuthorizeData{}
 	conds := service.NewConds()
@@ -168,6 +171,7 @@ func (store *Storage) RemoveAuthorize(code string) (err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	conds := service.NewConds()
 	conds.Add("code", code)
@@ -183,6 +187,7 @@ func (store *Storage) SaveAccess(ad *osin.AccessData) (err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	// generate database access type
 	e := &AccessData{}
@@ -221,6 +226,7 @@ func (store *Storage) LoadAccess(token string) (d *osin.AccessData, err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	e := &AccessData{}
 	conds := service.NewConds()
@@ -305,6 +311,7 @@ func (store *Storage) RemoveAccess(token string) (err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	conds := service.NewConds()
 	conds.Add("access_token", token)
@@ -323,6 +330,7 @@ func (store *Storage) LoadRefresh(token string) (d *osin.AccessData, err error) 
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	e := &AccessData{}
 	conds := service.NewConds()
@@ -350,6 +358,7 @@ func (store *Storage) RemoveRefresh(token string) (err error) {
 	if err != nil {
 		return
 	}
+	defer srv.Close()
 
 	conds := service.NewConds()
 	conds.Add("refresh_token", token)
