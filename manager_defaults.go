@@ -43,13 +43,36 @@ func DefaultOsinConfig() (cfg *osin.ServerConfig) {
 const DefaultLoginTpl = `
 <!DOCTYPE html>
 <html>
+<head>
+<title>Login</title>
+<style>
+body, html { margin: 0; font-size: 18pt; background-color: #EEE; }
+#login-box { max-width: 100%; width: 300px; margin: 10% auto 0; box-shadow: 0 0 3px #777; background-color: #F9F9F9; }
+#login-box h1 { font-size: 1.2em; margin: 0 0 0.5em; }
+#login-box .content { margin: 0 20px; padding: 30px 0; text-align: center; }
+#login-box .field { display: block; width: 88%; background-color: #FFF; }
+#login-box .field { border: solid 1px #EEE; padding: 0.4em 1em; line-height: 1.3em; }
+#login-box .actions { text-align: center; }
+#login-box button { width: 100%; }
+</style>
+</head>
 <body>
-	LOGIN {{ .SiteName }}<br/>
-	<form action="{{ .FormAction }}" method="POST">
-		Login: <input type="text" name="user_id" /><br/>
-		Password: <input type="password" name="password" /><br/>
-		<input type="submit"/>
-	</form>
+	<div id="login-box"><div class="content">
+		<h1>{{ .Title }}</h1>
+		<form action="{{ .FormAction }}" method="POST">
+			<div class="field-wrapper">
+				<input name="user_id" type="text" class="field"
+					placeholder="{{ .TextUserId }}" autofocus />
+			</div>
+			<div class="field-wrapper">
+				<input name="password" type="password" class="field"
+					placeholder="{{ .TextPassword }}" />
+			</div>
+			<div class="actions">
+				<button type="submit">{{ .TextSubmit }}</button>
+			</div>
+		</form>
+	</div></div>
 </body>
 </html>
 `
@@ -115,8 +138,11 @@ func NewLoginFormFunc(tpl string) LoginFormFunc {
 
 		// template variables
 		vars := map[string]interface{}{
-			"SiteName":   "Gourd: Example 2",
-			"FormAction": aurl.String(),
+			"Title":        "Login",
+			"FormAction":   aurl,
+			"TextUserId":   "Login ID",
+			"TextPassword": "Password",
+			"TextSubmit":   "Login",
 		}
 
 		// render the form with vars
