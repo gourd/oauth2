@@ -21,7 +21,7 @@ func dummyNewClient(redirectUri string) *Client {
 		Id:          randSeq(10),
 		Secret:      randSeq(10),
 		RedirectUri: redirectUri,
-		UserId:      0,
+		UserId:      "",
 	}
 }
 

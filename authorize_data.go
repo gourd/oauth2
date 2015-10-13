@@ -11,7 +11,7 @@ import (
 type AuthorizeData struct {
 
 	// Authorize Data Id
-	Id int32 `db:"id,omitempty"`
+	Id string `db:"id,omitempty"`
 
 	// Client Id the data is linked to
 	ClientId string `db:"client_id"`
@@ -38,7 +38,7 @@ type AuthorizeData struct {
 	CreatedAt time.Time `db:"created_at"`
 
 	// User Id the data is linked to
-	UserId int64 `db:"user_id"`
+	UserId string `db:"user_id"`
 
 	// Data to be passed to storage. Not used by the osin library.
 	UserData interface{} `db:"-"`

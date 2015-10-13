@@ -6,7 +6,7 @@ type Client struct {
 	Id          string      `db:"id,omitempty"`
 	Secret      string      `db:"secret"`
 	RedirectUri string      `db:"redirect_uri"`
-	UserId      int64       `db:"user_id"`
+	UserId      string      `db:"user_id"`
 	UserData    interface{} `db:"-"`
 }
 
