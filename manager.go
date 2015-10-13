@@ -142,7 +142,13 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		err = loginTpl.Execute(w, vars)
 		if err != nil {
 			log.Printf("error executing login template: %#v", err.Error())
+			return
 		}
+
+		// end login handling sequence and wait for
+		// user input from login form
+		err = errors.New("need login")
+
 		return
 	}
 
