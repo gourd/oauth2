@@ -8,6 +8,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
+	"text/template"
 )
 
 // DefaultStorage returns Storage that attachs to default services
@@ -94,6 +96,33 @@ func NewUserFunc(idName string) UserFunc {
 		if !ok {
 			log.Printf("User cannot be cast as OAuth2User")
 			err = errors.New("Internal server error")
+			return
+		}
+
+		return
+	}
+}
+
+func NewLoginFormFunc(tpl string) LoginFormFunc {
+
+	// compile template for login form
+	loginTpl, err := template.New("loginForm").Parse(tpl)
+	if err != nil {
+		panic(err) // should not happen, simply panic
+	}
+
+	return func(w http.ResponseWriter, r *http.Request, aurl *url.URL) (err error) {
+
+		// template variables
+		vars := map[string]interface{}{
+			"SiteName":   "Gourd: Example 2",
+			"FormAction": aurl.String(),
+		}
+
+		// render the form with vars
+		err = loginTpl.Execute(w, vars)
+		if err != nil {
+			log.Printf("error executing login template: %#v", err.Error())
 			return
 		}
 

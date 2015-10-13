@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"text/template"
 )
 
 // Endpoints contains http handler func of different endpoints
@@ -29,8 +28,9 @@ func NewManager() (m *Manager) {
 	// provide osin server to Manager
 	m.InitOsin(DefaultOsinConfig())
 
-	// set default template
-	m.SetLoginTpl(DefaultLoginTpl)
+	// set default login form handler
+	// (only handles GET request of the authorize endpoint)
+	m.SetLoginFormFunc(NewLoginFormFunc(DefaultLoginTpl))
 
 	// set default login parser
 	m.SetUserFunc(NewUserFunc("user_id"))
@@ -43,14 +43,19 @@ func NewManager() (m *Manager) {
 // is returned
 type UserFunc func(r *http.Request, us service.Service) (u OAuth2User, err error)
 
+// LoginFormFunc handles GET request of the authorize endpoint
+// and displays a login form for user to login.
+// The action parameter provides a pre-rendered URL to login
+type LoginFormFunc func(w http.ResponseWriter, r *http.Request, action *url.URL) (err error)
+
 // Manager handles oauth2 related request
 // Also provide middleware for other http handler function
 // to access scope related information
 type Manager struct {
-	storage    *Storage
-	osinServer *osin.Server
-	loginTpl   string
-	userFunc   UserFunc
+	storage       *Storage
+	osinServer    *osin.Server
+	loginFormFunc LoginFormFunc
+	userFunc      UserFunc
 }
 
 // UseOsin set the OsinServer
@@ -67,12 +72,6 @@ func (m *Manager) UseStorage(s *Storage) *Manager {
 
 // GetEndpoints generate endpoints http handers and return
 func (m *Manager) GetEndpoints() *Endpoints {
-
-	// compile template for login form
-	loginTpl, err := template.New("loginForm").Parse(m.loginTpl)
-	if err != nil {
-		panic(err)
-	}
 
 	// handle login
 	handleLogin := func(ar *osin.AuthorizeRequest, w http.ResponseWriter, r *http.Request) (err error) {
@@ -132,18 +131,13 @@ func (m *Manager) GetEndpoints() *Endpoints {
 		aq.Add("scope", ar.Scope)
 		aq.Add("redirect_uri", ar.RedirectUri)
 
-		// template variables
-		vars := map[string]interface{}{
-			"SiteName":   "Gourd: Example 2",
-			"FormAction": r.URL.Path + "?" + aq.Encode(),
-		}
+		// form action url
+		aurl := r.URL
+		aurl.RawQuery = aq.Encode()
 
-		// render the form with vars
-		err = loginTpl.Execute(w, vars)
-		if err != nil {
-			log.Printf("error executing login template: %#v", err.Error())
-			return
-		}
+		log.Printf("action URL: %#v", aurl)
+
+		m.loginFormFunc(w, r, aurl)
 
 		// end login handling sequence and wait for
 		// user input from login form
@@ -184,6 +178,8 @@ func (m *Manager) GetEndpoints() *Endpoints {
 	// token endpoint
 	ep.Token = func(w http.ResponseWriter, r *http.Request) {
 
+		log.Printf("token endpoint")
+
 		srvr := m.osinServer
 		resp := srvr.NewResponse()
 		resp.Storage.(*Storage).SetRequest(r)
@@ -206,9 +202,9 @@ func (m *Manager) GetEndpoints() *Endpoints {
 
 }
 
-// SetLoginTpl sets the login template
-func (m *Manager) SetLoginTpl(tpl string) {
-	m.loginTpl = tpl
+// SetLoginFormFunc sets the handler to display login form
+func (m *Manager) SetLoginFormFunc(f LoginFormFunc) {
+	m.loginFormFunc = f
 }
 
 // SetLoginParser sets the parser for login request.
