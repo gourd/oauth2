@@ -13,6 +13,7 @@ import (
 type Endpoints struct {
 	Auth  http.HandlerFunc
 	Token http.HandlerFunc
+	Info  http.HandlerFunc
 }
 
 // NewManager returns a oauth2 manager with default configs
@@ -194,6 +195,23 @@ func (m *Manager) GetEndpoints() *Endpoints {
 			log.Printf("Internal Error: %s", resp.InternalError.Error())
 		}
 		log.Printf("OAuth2 Token Response: %#v", resp)
+		osin.OutputJSON(resp, w, r)
+
+	}
+
+	// information endpoint
+	ep.Info = func(w http.ResponseWriter, r *http.Request) {
+
+		log.Printf("information endpoint")
+		srvr := m.osinServer
+
+		resp := srvr.NewResponse()
+		resp.Storage.(*Storage).SetRequest(r)
+		defer resp.Close()
+
+		if ir := srvr.HandleInfoRequest(resp, r); ir != nil {
+			srvr.FinishInfoRequest(resp, r, ir)
+		}
 		osin.OutputJSON(resp, w, r)
 
 	}

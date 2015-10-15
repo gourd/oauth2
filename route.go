@@ -20,5 +20,6 @@ func RoutePat(rtr *pat.Router, base string, ep *Endpoints) {
 	rtr.Post(base+"/authorize", ep.Auth)
 	rtr.Get(base+"/token", ep.Token)
 	rtr.Post(base+"/token", ep.Token)
+	rtr.Get(base+"/info", ep.Info)
 
 }
