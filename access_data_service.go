@@ -81,6 +81,8 @@ func (s *AccessDataService) Create(
 func (s *AccessDataService) Search(
 	q service.Query, lp service.EntityListPtr) (err error) {
 
+	log.Printf("access_data query: %#v", q)
+
 	// get collection
 	coll, err := s.Coll()
 	if err != nil {
